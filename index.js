@@ -65,9 +65,20 @@ async function run() {
             res.send({ token });
         })
 
+
+        //use verifyJWT before using verifyAdmin
+        const verifyAdmin = async (req, res, next) => {
+            const email = req.decoded.email;
+            const query = { email: email };
+            const user = await usersCollection.findOne(query);
+            if (user?.role !== 'admin') {
+                return res.status(403).send({ error: true, message: 'forbidden message' })
+            }
+            next();
+        }
         //users related apis
 
-        app.get('/users', async (req, res) => {
+        app.get('/users', verifyJWT, verifyAdmin, async (req, res) => {
             const result = await usersCollection.find().toArray();
             res.send(result);
         })
@@ -99,6 +110,20 @@ async function run() {
             res.send(result);
         })
 
+        app.get('/users/instructor/:email', verifyJWT, async (req, res) => {
+            const email = req.params.email;
+
+            if (req.decoded.email !== email) {
+                res.send({ instructor: false });
+            }
+
+            const query = { email: email };
+            const user = await usersCollection.findOne(query);
+            const result = { instructor: user?.role === 'instructor' };
+            res.send(result);
+        });
+
+
         app.patch('/users/admin/:id', async (req, res) => {
             const id = req.params.id;
             const filter = { _id: new ObjectId(id) };
@@ -110,6 +135,31 @@ async function run() {
             const result = await usersCollection.updateOne(filter, updateDoc);
             res.send(result)
         })
+
+        app.patch('/users/:id/role/:role', verifyJWT, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const role = req.params.role;
+            const validRoles = ['admin', 'instructor', 'student'];
+
+            if (!validRoles.includes(role)) {
+                return res.status(400).json({ error: 'Invalid role provided' });
+            }
+
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    role: role
+                },
+            };
+
+            try {
+                const result = await usersCollection.updateOne(filter, updateDoc);
+                res.json(result);
+            } catch (error) {
+                res.status(500).json({ error: 'Error updating user role' });
+            }
+        });
+
 
         //classes apis
 
@@ -124,7 +174,7 @@ async function run() {
             res.send(result);
         })
 
-        app.delete('/classes/:id', async (req, res) => {
+        app.delete('/classes/:id', verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
             const result = await classCollection.deleteOne(query);
