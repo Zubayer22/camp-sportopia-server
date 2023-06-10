@@ -57,6 +57,18 @@ async function run() {
             res.send(result);
         })
 
+        app.patch('/users/admin/:id', async (req, res) => {
+            const id = req.params.id;
+            const filter = { _id: new ObjectId(id) };
+            const updateDoc = {
+                $set: {
+                    role: 'admin'
+                },
+            };
+            const result = await usersCollection.updateOne(filter, updateDoc);
+            res.send(result)
+        })
+
         //classes apis
 
         app.get('/classes', async (req, res) => {
@@ -67,6 +79,13 @@ async function run() {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const result = await classCollection.findOne(query);
+            res.send(result);
+        })
+
+        app.delete('/classes/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) }
+            const result = await classCollection.deleteOne(query);
             res.send(result);
         })
 
@@ -88,7 +107,7 @@ async function run() {
 
         app.get('/carts', async (req, res) => {
             const email = req.query.email;
-            if(!email){
+            if (!email) {
                 res.send([])
             }
             const query = { email: email }
