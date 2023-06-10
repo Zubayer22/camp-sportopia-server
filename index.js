@@ -1,7 +1,9 @@
 const express = require('express');
-const app = express();
 const cors = require('cors');
+const jwt = require('jsonwebtoken');
 require('dotenv').config();
+
+const app = express();
 const port = process.env.PORT || 3000;
 
 
@@ -9,6 +11,25 @@ const port = process.env.PORT || 3000;
 app.use(cors());
 app.use(express.json());
 
+
+
+const verifyJWT = (req, res, next) => {
+    const authorization = req.headers.authorization;
+    if (!authorization) {
+        return res.status(401).send({ error: true, message: 'unauthorized access' });
+    }
+    //bearer token
+    const token = authorization.split(' ')[1];
+
+    jwt.verify(token, process.env.ACCESS_TOKEN_SECRET, (err, decoded) => {
+        if (err) {
+            return res.status(401).send({ error: true, message: 'unauthorized access' })
+        }
+        req.decoded = decoded;
+        next();
+    })
+
+}
 
 
 
@@ -36,6 +57,13 @@ async function run() {
         const classCollection = client.db("campDb").collection("classes");
         const instructorCollection = client.db("campDb").collection("instructors");
         const cartCollection = client.db("campDb").collection("carts");
+
+        //jwt
+        app.post('/jwt', (req, res) => {
+            const user = req.body;
+            const token = jwt.sign(user, process.env.ACCESS_TOKEN_SECRET, { expiresIn: '1hr' });
+            res.send({ token });
+        })
 
         //users related apis
 
