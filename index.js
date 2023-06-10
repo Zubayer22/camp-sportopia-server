@@ -32,10 +32,30 @@ async function run() {
 
 
 
-
+        const usersCollection = client.db("campDb").collection("users");
         const classCollection = client.db("campDb").collection("classes");
         const instructorCollection = client.db("campDb").collection("instructors");
         const cartCollection = client.db("campDb").collection("carts");
+
+        //users related apis
+
+        app.get('/users', async (req, res) => {
+            const result = await usersCollection.find().toArray();
+            res.send(result);
+        })
+
+        app.post('/users', async (req, res) => {
+            const user = req.body;
+            console.log(user);
+            const query = { email: user.email }
+            const existingUser = await usersCollection.findOne(query);
+            console.log('existing user', existingUser);
+            if (existingUser) {
+                return res.send({ message: 'user already exist' })
+            }
+            const result = await usersCollection.insertOne(user);
+            res.send(result);
+        })
 
         //classes apis
 
@@ -80,6 +100,13 @@ async function run() {
             const item = req.body;
             console.log(item);
             const result = await cartCollection.insertOne(item);
+            res.send(result);
+        })
+
+        app.delete('/carts/:id', async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const result = await cartCollection.deleteOne(query);
             res.send(result);
         })
 
