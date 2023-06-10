@@ -174,6 +174,12 @@ async function run() {
             res.send(result);
         })
 
+        app.post('/classes', verifyJWT, async (req, res) => {
+            const newItem = req.body;
+            const result = await classCollection.insertOne(newItem);
+            res.send(result)
+        })
+
         app.delete('/classes/:id', verifyJWT, verifyAdmin, async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) }
