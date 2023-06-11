@@ -169,7 +169,7 @@ async function run() {
             const result = await classCollection.find(query).toArray();
             res.send(result);
         });
-        
+
         app.get('/classes/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
@@ -189,6 +189,24 @@ async function run() {
             const result = await classCollection.deleteOne(query);
             res.send(result);
         })
+
+        app.put('/classes/:id/approve', verifyJWT, verifyAdmin, async (req, res) => {
+            const id = req.params.id;
+            const query = { _id: new ObjectId(id) };
+            const update = { $set: { status: 'approve' } };
+          
+            try {
+              const result = await classCollection.updateOne(query, update);
+              if (result.modifiedCount > 0) {
+                res.send({ success: true, message: 'Class status updated to "approve".' });
+              } else {
+                res.status(404).send({ success: false, message: 'Class not found.' });
+              }
+            } catch (error) {
+              res.status(500).send({ success: false, message: 'Error updating class status.' });
+            }
+          });
+          
 
         //instructor apis
         app.get('/instructors', async (req, res) => {
