@@ -164,9 +164,12 @@ async function run() {
         //classes apis
 
         app.get('/classes', async (req, res) => {
-            const result = await classCollection.find().toArray();
+            const { email } = req.query;
+            const query = email ? { instructorEmail: email } : {};
+            const result = await classCollection.find(query).toArray();
             res.send(result);
-        })
+        });
+        
         app.get('/classes/:id', async (req, res) => {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
