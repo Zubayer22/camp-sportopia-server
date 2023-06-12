@@ -57,6 +57,7 @@ async function run() {
         const classCollection = client.db("campDb").collection("classes");
         const instructorCollection = client.db("campDb").collection("instructors");
         const cartCollection = client.db("campDb").collection("carts");
+        const paymentCollection = client.db('campDb').collection("payments");
 
         //jwt
         app.post('/jwt', (req, res) => {
@@ -194,19 +195,19 @@ async function run() {
             const id = req.params.id;
             const query = { _id: new ObjectId(id) };
             const update = { $set: { status: 'approve' } };
-          
+
             try {
-              const result = await classCollection.updateOne(query, update);
-              if (result.modifiedCount > 0) {
-                res.send({ success: true, message: 'Class status updated to "approve".' });
-              } else {
-                res.status(404).send({ success: false, message: 'Class not found.' });
-              }
+                const result = await classCollection.updateOne(query, update);
+                if (result.modifiedCount > 0) {
+                    res.send({ success: true, message: 'Class status updated to "approve".' });
+                } else {
+                    res.status(404).send({ success: false, message: 'Class not found.' });
+                }
             } catch (error) {
-              res.status(500).send({ success: false, message: 'Error updating class status.' });
+                res.status(500).send({ success: false, message: 'Error updating class status.' });
             }
-          });
-          
+        });
+
 
         //instructor apis
         app.get('/instructors', async (req, res) => {
@@ -253,6 +254,33 @@ async function run() {
             const result = await cartCollection.deleteOne(query);
             res.send(result);
         })
+
+        //create payment method
+        app.post('/create-payment-intent', verifyJWT, async (req, res) => {
+            const { price } = req.body;
+            const amount = price * 100;
+            const paymentIntent = await stripe.paymentIntents.create({
+                amount: amount,
+                currency: "inr",
+                payment_method_types: ["card"]
+            });
+            res.send({
+                clientSecret: paymentIntent.client_secret,
+            });
+        })
+          
+        //payment related apis
+        app.post('/payments', verifyJWT, async (req, res) => {
+            const payment = req.body;
+            const insertResult = await paymentCollection.insertOne(payment);
+          
+            const query = { _id: { $in: payment.cartItems.map(id => new ObjectId(id)) } };
+            const deleteResult = await cartCollection.deleteMany(query);
+
+            res.send({ insertResult, deleteResult });
+          });
+          
+
 
 
 
